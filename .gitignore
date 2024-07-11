@@ -1,2 +1,8 @@
 
 .env
+/node_modules
+allies.json
+characters.json
+multiMap.json
+server-channels.json
+stacked.json
