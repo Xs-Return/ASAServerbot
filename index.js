@@ -216,14 +216,17 @@ async function sendEmbedsToChannels() {
             continue;
         }
 
-
-        const result = await quicksearch(filteredData[0].ip, filteredData[0].Port);
-        if (result.length == 0) {
-            console.log("Quicksearch failed " + filteredData[0].Name)
-            return
-        }
         const embed = new EmbedBuilder()
-            .setTitle(`${result.name}`)
+        const result = await quicksearch(filteredData[0].ip, filteredData[0].Port);
+        if (!result) {
+            console.log("Quicksearch failed " + filteredData[0].Name)
+            embed.setTitle(`${filteredData[0].Name}`)
+            .addFields(
+                { name: "Players:", value: "```" + `Offline` + "```", inline: true }
+            )
+        }
+        else {
+            embed.setTitle(`${result.name}`)
             .addFields(
                 { name: "Players:", value: "```" + `${result.numplayers}/${result.maxplayers}` + "```", inline: true },
                 { name: "Map:", value: "```" + `${result.map}` + "```", inline: true },
@@ -232,6 +235,8 @@ async function sendEmbedsToChannels() {
             .setTimestamp()
             .setAuthor({ name: 'Sheogorath', iconURL: 'https://imgur.com/RlyINGK.png' })
             .setFooter({ text: `v${result.version}` });
+        }
+
 
         try {
             const messages = await channel.messages.fetch({ limit: 1 });
