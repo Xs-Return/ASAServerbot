@@ -1,5 +1,4 @@
 require('dotenv').config();
-const { time } = require('console');
 const { Client, GatewayIntentBits, EmbedBuilder, Events, Partials, User, Embed } = require('discord.js');
 const { GameDig } = require('gamedig');
 const client = new Client({
@@ -17,7 +16,6 @@ const fs = require('fs');
 const { Server } = require('http');
 let ServerData = []
 let NameArray = []
-// Function to read server channels data from JSON file
 function readServerChannels() {
     try {
         const data = fs.readFileSync('server-channels.json', 'utf8');
@@ -28,7 +26,6 @@ function readServerChannels() {
     }
 }
 
-// Function to write server channels data to JSON file
 function writeServerChannels(serverChannels) {
     try {
         fs.writeFileSync('server-channels.json', JSON.stringify(serverChannels, null, 2));
@@ -47,8 +44,6 @@ function readStackedChannels() {
         return [];
     }
 }
-
-// Function to write server channels data to JSON file
 function writeStackedChannels(serverChannels) {
     try {
         fs.writeFileSync('stacked.json', JSON.stringify(serverChannels, null, 2));
@@ -59,7 +54,6 @@ function writeStackedChannels(serverChannels) {
 }
 
 
-// Function to read server channels data from JSON file
 function readCharacters() {
     try {
         const data = fs.readFileSync('characters.json', 'utf8');
@@ -70,8 +64,11 @@ function readCharacters() {
     }
 }
 
-// Function to write server channels data to JSON file
+
 function writeCharacters(characters) {
+    // Remove any userId entries with an empty characters array
+    characters = characters.filter(user => user.characters.length > 0);
+
     try {
         fs.writeFileSync('characters.json', JSON.stringify(characters, null, 2));
         console.log('Characters Saved');
@@ -80,7 +77,7 @@ function writeCharacters(characters) {
     }
 }
 
-// Function to add a character-server pair
+
 function addCharacter(userId, charId, serverName) {
     let userData = readCharacters();
     let user = userData.find(user => user.userId === userId);
@@ -94,20 +91,19 @@ function addCharacter(userId, charId, serverName) {
 }
 
 
-// Function to remove a character-server pair
 function removeCharacter(userId, charId, server) {
     let userData = readCharacters();
     let userIndex = userData.findIndex(user => user.userId === userId);
     if (userIndex !== -1) {
         let user = userData[userIndex];
         if (server) {
-            // Remove character by ID and server
+
             let characterIndex = user.characters.findIndex(char => char.id === charId && char.server === server);
             if (characterIndex !== -1) {
                 user.characters.splice(characterIndex, 1);
             }
         } else {
-            // Remove character by ID only
+
             let characterIndex = user.characters.findIndex(char => char.id === charId);
             if (characterIndex !== -1) {
                 user.characters.splice(characterIndex, 1);
@@ -117,20 +113,46 @@ function removeCharacter(userId, charId, server) {
     }
 }
 
-// Function to get characters for a given user ID
+function removeCharacterByServer(server) {
+    let userData = readCharacters();
+
+    userData.forEach(user => {
+        user.characters = user.characters.filter(char => !(char.server === server));
+    });
+
+    writeCharacters(userData);
+}
+
+function removeUserByUserId(userId) {
+    let userData = readCharacters();
+
+    userData = userData.filter(user => user.userId !== userId);
+    writeCharacters(userData);
+
+}
+
+
 function getCharactersByUserId(userId) {
     let userData = readCharacters();
     let user = userData.find(user => user.userId === userId);
     if (user) {
         return user.characters;
     } else {
-        return []; // Return an empty array if user is not found
+        return [];
+    }
+}
+function getCharactersByServer(server) {
+    let serverData = readCharacters();
+    let user = serverData.find(user => user.server === server);
+    if (user) {
+        return user.characters;
+    } else {
+        return [];
     }
 }
 
 
 
-// Function to fetch data from the JSON file
 function fetchData() {
 
 
@@ -143,21 +165,21 @@ function fetchData() {
                 return response.json();
             })
             .then(data => {
-                // Resolve the promise with the fetched data
+
                 resolve(data);
                 processData(data);
             })
             .catch(error => {
-                // Reject the promise if there was an error fetching the data
+
                 reject(error);
             });
     });
 }
 
-// Define a map to store the previous NumPlayers value for each server
+
 const previousNumPlayers = new Map();
 
-// Function to process the received JSON data
+
 async function processData(data) {
     const jsonData = data;
 
@@ -167,7 +189,7 @@ async function processData(data) {
         Port: item.Port
     }));
     ServerData = strippedData
-    // console.log(ServerData);
+
 }
 
 async function quicksearch(add, po) {
@@ -183,8 +205,7 @@ async function quicksearch(add, po) {
         });
     } catch (error) {
         console.log("Error in quicksearch:", error.message);
-        // You can handle the error here, such as logging or returning a default response
-        return null; // Return null or any default response in case of error
+        return null;
     }
 
     return response;
@@ -221,20 +242,20 @@ async function sendEmbedsToChannels() {
         if (!result) {
             console.log("Quicksearch failed " + filteredData[0].Name)
             embed.setTitle(`${filteredData[0].Name}`)
-            .addFields(
-                { name: "Players:", value: "```" + `Offline` + "```", inline: true }
-            )
+                .addFields(
+                    { name: "Players:", value: "```" + `Offline` + "```", inline: true }
+                )
         }
         else {
             embed.setTitle(`${result.name}`)
-            .addFields(
-                { name: "Players:", value: "```" + `${result.numplayers}/${result.maxplayers}` + "```", inline: true },
-                { name: "Map:", value: "```" + `${result.map}` + "```", inline: true },
-                { name: "IP:", value: "```" + `${result.connect}` + "```", inline: false }
-            )
-            .setTimestamp()
-            .setAuthor({ name: 'Sheogorath', iconURL: 'https://imgur.com/RlyINGK.png' })
-            .setFooter({ text: `v${result.version}` });
+                .addFields(
+                    { name: "Players:", value: "```" + `${result.numplayers}/${result.maxplayers}` + "```", inline: true },
+                    { name: "Map:", value: "```" + `${result.map}` + "```", inline: true },
+                    { name: "IP:", value: "```" + `${result.connect}` + "```", inline: false }
+                )
+                .setTimestamp()
+                .setAuthor({ name: 'Sheogorath', iconURL: 'https://imgur.com/RlyINGK.png' })
+                .setFooter({ text: `v${result.version}` });
         }
 
 
@@ -283,19 +304,18 @@ async function SendStackedEmbeds() {
         });
 
         const results = await Promise.allSettled(promises);
-        // console.log(results)
-        results.forEach(({ value, error}) => {
+
+        results.forEach(({ value, error }) => {
             if (error) {
                 console.log("Error in quicksearch:", error.message);
                 return;
             }
-            if (!value.result)
-            {
+            if (!value.result) {
                 embed.addFields(
                     { name: `${filteredData[value.index].name}`, value: "```" + `Dead` + "```", inline: true });
-                    return
+                return
             };
-            // trimmedname = result.name.replace(/\D/g, "");
+
             embed.addFields(
                 { name: `${filteredData[value.index].name}`, value: "```" + `${value.result.numplayers}/${value.result.maxplayers}` + "```", inline: true }
             );
@@ -322,11 +342,10 @@ async function SendStackedEmbeds() {
 
 
 
-//CoomandListener
 client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
 
-    if (interaction.commandName === 'watch') {
+    if (interaction.commandName === 'setupwatcher') {
         let serverChannels = readServerChannels();
         const partialserverName = interaction.options.getString('name');
         const channelId = interaction.channelId;
@@ -359,7 +378,7 @@ client.on('interactionCreate', async interaction => {
             catch { return console.log("NoPerms1") }
         }
         const result = await quicksearch(filteredData[0].ip, filteredData[0].Port)
-        // console.log(result)
+
 
         const timenow = Math.floor(Date.now() / 1000)
         if (!result) {
@@ -383,12 +402,12 @@ client.on('interactionCreate', async interaction => {
         catch { console.log("NoPerms3") }
 
     }
-    else if (interaction.commandName === 'watcherclear') {
+    else if (interaction.commandName === 'clearwatcher') {
         let serverChannels = readServerChannels();
         const channelId = interaction.channelId;
         for (let i = serverChannels.length - 1; i >= 0; i--) {
             if (serverChannels[i].channelId === channelId) {
-                serverChannels.splice(i, 1); // Remove the item at index i
+                serverChannels.splice(i, 1);
             }
         }
         console.log(serverChannels)
@@ -406,7 +425,7 @@ client.on('interactionCreate', async interaction => {
         try {
             for (const item of itemList) {
                 const message = await interaction.channel.send(`🔳 ${item}`);
-                await message.react('✅');  // Add a white checkmark reaction
+                await message.react('✅');
             }
 
             await interaction.editReply({ content: 'Checklist created!', ephemeral: true });
@@ -414,7 +433,7 @@ client.on('interactionCreate', async interaction => {
         catch {
             console.log("NoPerms")
         }
-    } else if (interaction.commandName === 'invite') {
+    } else if (interaction.commandName === 'invchar') {
         await interaction.deferReply({ ephemeral: true });
 
         const user = interaction.options.getUser('user');
@@ -422,7 +441,7 @@ client.on('interactionCreate', async interaction => {
         const server = interaction.options.getString('server');
         addCharacter(user.id, character, server);
         let characters = getCharactersByUserId(user.id);
-        console.log(characters); // Output: [{ id: "CHAR1", server: "SERVER1" }, { id: "CHAR2", server: "SERVER2" }, { id: "CHAR3", server: "SERVER3" }]
+        console.log(characters);
         try {
 
             await interaction.editReply({ content: "Character Added", ephemeral: true });
@@ -431,15 +450,23 @@ client.on('interactionCreate', async interaction => {
             console.log("NoPerms")
         }
     }
-    else if (interaction.commandName === 'remove') {
+    else if (interaction.commandName === 'remchar') {
         await interaction.deferReply({ ephemeral: true });
 
         const user = interaction.options.getUser('user');
         const character = interaction.options.getString('character');
         const server = interaction.options.getString('server');
-        removeCharacter(user.id, character, server)
+        if (server && character) {
+            console.log("REMCHARACTER")
+            removeCharacter(user.id, character, server)
+        }
+        else {
+            console.log("RemUSERID")
+            removeUserByUserId(user.id)
+        }
+
+
         let characters = getCharactersByUserId(user.id);
-        console.log(characters); // Output: [{ id: "CHAR1", server: "SERVER1" }, { id: "CHAR2", server: "SERVER2" }, { id: "CHAR3", server: "SERVER3" }]
         try {
 
             await interaction.editReply({ content: "Character Removed", ephemeral: true });
@@ -448,9 +475,23 @@ client.on('interactionCreate', async interaction => {
             console.log("NoPerms")
         }
     }
+    else if (interaction.commandName === 'remall') {
+        await interaction.deferReply({ ephemeral: true });
 
-    else if (interaction.commandName === 'characters') {
-        // Retrieve characters for a given user ID (replace this with your own logic)
+        const server = interaction.options.getString('server');
+        removeCharacterByServer(server)
+        let servers = getCharactersByServer(server);
+        console.log(servers);
+        try {
+
+            await interaction.editReply({ content: "Server Purged", ephemeral: true });
+        }
+        catch {
+            console.log("NoPerms")
+        }
+    }
+
+    else if (interaction.commandName === 'char') {
         const user = interaction.options.getUser('user');
         if (user.bot) {
             interaction.reply("User is Bot");
@@ -470,14 +511,12 @@ client.on('interactionCreate', async interaction => {
             .setTitle(user.globalName)
             .setColor('#0099ff');
 
-        // Add fields for each character
         for (const [server, charIds] of Object.entries(charactersByServer)) {
 
             const charactersList = charIds.join('\n');
             embed.addFields({ name: server, value: charactersList, inline: true });
         }
 
-        // Reply with the embed
         try {
             interaction.reply({ embeds: [embed] });
         }
@@ -508,26 +547,24 @@ client.on('interactionCreate', async interaction => {
 
 });
 
-//Reactions
+
 client.on(Events.MessageReactionAdd, async (reaction, user) => {
     try {
         if (reaction.partial) {
-            // If the message this reaction belongs to was removed, the fetching might result in an API error which should be handled
             try {
                 await reaction.fetch();
             } catch (error) {
                 console.error('Something went wrong when fetching the message:', error);
-                // Return as `reaction.message.author` may be undefined/null
                 return;
             }
         }
 
-        if (user.bot) return; // Ignore reactions from bots
+        if (user.bot) return;
 
         if (reaction.emoji.name === '✅') {
             const message = reaction.message;
-            if (!message.content.startsWith('🔳')) return; // ignore messages that are not checklist items
-            await message.edit({ content: `✅ ${message.content.slice(2)} (completed by <@${user.id}>)` }); // mark the item as completed and mention the user
+            if (!message.content.startsWith('🔳')) return;
+            await message.edit({ content: `✅ ${message.content.slice(2)} (completed by <@${user.id}>)` });
             await message.reactions.removeAll()
         }
     } catch (error) {
@@ -535,17 +572,17 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
     }
 });
 
-// When the bot is ready, start fetching data
+
 client.once('ready', () => {
     console.log('Bot is ready');
     fetchData();
 
-    setInterval(fetchData, 600000); // Fetch data every 5 seconds
+    setInterval(fetchData, 600000);
     sendEmbedsToChannels();
     setInterval(sendEmbedsToChannels, 10000);
     setInterval(SendStackedEmbeds, 10000);
-    
+
 });
 
-// Log in to Discord with your bot token
+
 client.login(process.env.TOKEN);

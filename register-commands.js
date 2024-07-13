@@ -3,7 +3,7 @@ const { REST, Routes, ApplicationCommandOptionType } = require('discord.js');
 
 const commands = [
   {
-    name: 'characters',
+    name: 'char',
     description: 'Lookup of Character/ Discord @',
     options: [
       {
@@ -27,7 +27,7 @@ const commands = [
     ]
   },
   {
-    name: 'invite',
+    name: 'invchar',
     description: 'Adds Character to list',
     options: [
       {
@@ -51,7 +51,7 @@ const commands = [
     ]
   },
   {
-    name: 'watch',
+    name: 'setupwatcher',
     description: 'Setup Server Watcher',
     options: [
       {
@@ -63,7 +63,7 @@ const commands = [
     ]
   },
   {
-    name: 'remove',
+    name: 'remchar',
     description: 'Deletes Character',
     options: [
       {
@@ -76,8 +76,20 @@ const commands = [
         name: 'character',
         description: 'Character Name',
         type: ApplicationCommandOptionType.String,
-        required: true
+        required: false
       },
+      {
+        name: 'server',
+        description: 'Server Number',
+        type: ApplicationCommandOptionType.String,
+        required: false
+      },
+    ]
+  },
+  {
+    name: 'remall',
+    description: 'Purges all Characters on a server',
+    options: [
       {
         name: 'server',
         description: 'Server Number',
@@ -87,8 +99,8 @@ const commands = [
     ]
   },
   {
-    name: 'watcherclear',
-    description: 'Clears Watcher in chanel',
+    name: 'clearwatcher',
+    description: 'Clears Watcher in channel',
   },
   {
     name: 'checklist',
